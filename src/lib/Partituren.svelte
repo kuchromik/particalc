@@ -8,6 +8,17 @@
     let printedCoverDrahtkammer = $state(false);
     let printedBackDrahtkammer = $state(false);
     let printedCoverRueckstich = $state(false);
+    
+    let paperCost = 0.1;
+    let printCost = 0.1;
+    let foldCost = 0.1;
+    let stitchCost = 2;
+    let wireCost = 5;
+    let c4ToA4 = 1.1;
+    let mwst = 1.07;
+
+    let paperSize = $state('A4');
+    let paperSizeChoosen = $state(false);
 
     function copyToClipboard() {
         const summaryBox = document.querySelector('.summaryBox');
@@ -24,9 +35,20 @@
 <main>
     <h2>Partituren</h2>
     <p>Der Druck erfolgt in s/w auf beschreibbarem Offsetpapier weiß 120 g/m²</p>
+    <p>Bitte wählen Sie das gewünschte Endformat:</p>
+    <div class="inputPaperSize">
+        <label>
+            <input type="radio" bind:group={paperSize} value="A4" checked />
+            DIN A4 - 21 cm x 29,7 cm
+        </label>
+        <label>
+            <input type="radio" bind:group={paperSize} value="C4" />
+            DIN C4 - 22,9 cm x 32,4 cm
+        </label>
+    </div>
     <div class="score">
         {#if !scorePagesIn}
-            <label>
+            <label class="buttonBeside">
                 Seitenzahl der eigentlichen Partitur ohne Deckblatt:
                 <input class="inputPages" type="number" bind:value={scorePages}/>
                 <button onclick={() => {scorePagesIn = true; scorePagesPlus = scorePages}}>OK</button>
@@ -58,8 +80,8 @@
                         Drahtkammerbindung <a href="https://www.metapaper.io/wiki/wire-o-auch-spiralbindung/detail/" target="_blank" rel="noopener noreferrer">Was ist das?</a>
                     </label>
                 </div>
+
                 {#if bindType === "rueckstich"}
-                   
                     <label>
                         Hat die Partitur zusätzlich ein ein- oder beidseitig farbig oder s/w-bedrucktes Deckblatt?
                         <input type="checkbox" onchange={(e) => { 
@@ -79,12 +101,18 @@
                         {#if scorePagesPlus % 4 != 0}
                             <p>Aus technischen Gründen muss die Seitenzahl auf {Math.ceil(scorePagesPlus / 4) * 4} erhöht werden, da die Partitur zu 4 Seiten pro Falzbogen gedruckt wird. Daher fügen wir am Ende {scorePagesAdjustedRueckstich-scorePagesPlus} Leerseiten an.</p>
                         {/if}
-                        <b>Die Kosten der Partitur betragen {((scorePagesAdjustedRueckstich / 4 * 0.3) + 2).toFixed(2)} € zzgl. 7% MwSt.</b>
+                        {#if paperSize === 'A4'}
+                            <p>Die Kosten der Partitur betragen {((scorePagesAdjustedRueckstich / 4 * (paperCost + printCost + foldCost)) + stitchCost).toFixed(2)} € zzgl. 7% MwSt. = <b>{(((scorePagesAdjustedRueckstich / 4 * 0.3) + 2) * mwst).toFixed(2)} €</b>.</p>
+                        {/if}
+                        {#if paperSize === 'C4'}
+                        <p>Die Kosten der Partitur betragen {(((scorePagesAdjustedRueckstich / 4 * (paperCost + printCost + foldCost)) + stitchCost) * c4ToA4).toFixed(2)} € zzgl. 7% MwSt. = <b>{(((scorePagesAdjustedRueckstich / 4 * 0.3) + 2) * c4ToA4 * mwst).toFixed(2)} €</b>.</p>
+                        {/if}
+                        <p>zzgl. ggfs. Versand Deutschland 7.00 Euro</p>
                         <p>Die Daten füge ich der e-Mail als Anhang hinzu.</p>
                     </div>
                     <button onclick={() => copyToClipboard()}>Die Zusammenfassung in die Zwischenablage kopieren</button>
+
                 {:else if bindType === "drahtkammer"}
-                    
                     <label>
                         Hat die Partitur zusätzlich ein ein- oder beidseitig farbig oder s/w-bedrucktes festes Deckblatt? Dieses ersetzt das unbedruckte Blankodeckblatt.
                         <input type="checkbox" onchange={(e) => { 
@@ -114,22 +142,28 @@
                         {#if scorePagesPlus % 2 == 1}
                         <p>Aus technischen Gründen muss die Seitenzahl auf {Math.ceil(scorePagesPlus / 2) * 2} erhöht werden, da die Partitur zu 2 Seiten pro Blatt gedruckt wird. Ggfs. fügen wir am Ende eine Leerseite an.</p>
                         {/if}
-                        <b>Die Kosten der Partitur betragen {((scorePagesAdjustedDrahtkammer / 2 * 0.15) + 5).toFixed(2)} € zzgl. 7% MwSt.</b>
+                        {#if paperSize === 'A4'}
+                        <p>Die Kosten der Partitur betragen {((scorePagesAdjustedDrahtkammer / 4 * (paperCost + printCost + foldCost)) + wireCost).toFixed(2)} € zzgl. 7% MwSt. = <b>{(((scorePagesAdjustedDrahtkammer / 4 * (paperCost + printCost + foldCost)) + wireCost) * mwst).toFixed(2)} €</b>.</p>
+                        {/if}
+                        {#if paperSize === 'C4'}
+                        <p>Die Kosten der Partitur betragen {(((scorePagesAdjustedDrahtkammer / 4 * (paperCost + printCost + foldCost)) + wireCost) * c4ToA4).toFixed(2)} € zzgl. 7% MwSt. = <b>{((((scorePagesAdjustedDrahtkammer / 4 * (paperCost + printCost + foldCost)) + wireCost) * c4ToA4) * mwst).toFixed(2)} €</b>.</p>
+                        {/if}
+                        <p>zzgl. ggfs. Versand Deutschland 7.00 Euro</p>
                         <p>Die Daten füge ich der e-Mail als Anhang hinzu.</p>
                     </div>
                     <button onclick={() => copyToClipboard()}>Die Zusammenfassung in die Zwischenablage kopieren</button>
                 {/if}
-            {:else if scorePages > 80 && scorePages <= 160}
+            {:else if scorePages > 80 && scorePages <= 200}
                 <p>Für die angegebene Seitenzahl ist eine Drahtkammerbindung notwendig.</p>
                 <label>
-                    Hat die Partitur zusätzlich ein ein- oder beidseitig farbig oder s/w-bedrucktes festes Deckblatt? Dieses ersetzt das unbedruckte Blankodeckblatt.
+                    Hat die Partitur zusätzlich ein ein- oder beidseitig farbig oder s/w-bedrucktes festes Deckblatt? Dieses ersetzt das feste Blankodeckblatt der Drahtkammerbindung.
                     <input type="checkbox" onchange={(e) => { 
                         scorePagesPlus += e.target.checked ? 2 : -2; 
                         printedCoverDrahtkammer = e.target.checked; 
                     }} />
                 </label>
                 <label>
-                    Hat die Partitur zusätzlich ein ein- oder beidseitig farbig oder s/w-bedrucktes festes Schlussblatt? Dieses ersetzt das unbedruckte Blankoschlussblatt.
+                    Hat die Partitur zusätzlich ein ein- oder beidseitig farbig oder s/w-bedrucktes festes Schlussblatt? Dieses ersetzt das feste Blankoschlussblatt der Drahtkammerbindung.
                     <input type="checkbox" onchange={(e) => { 
                         scorePagesPlus += e.target.checked ? 2 : -2; 
                         printedBackDrahtkammer = e.target.checked; 
@@ -150,12 +184,18 @@
                     {#if scorePagesPlus % 2 == 1}
                     <p>Aus technischen Gründen muss die Seitenzahl auf {Math.ceil(scorePagesPlus / 2) * 2} erhöht werden, da die Partitur zu 2 Seiten pro Blatt gedruckt wird. Ggfs. fügen wir am Ende eine Leerseite an.</p>
                     {/if}
-                    <b>Die Kosten der Partitur betragen {((scorePagesAdjustedDrahtkammer / 2 * 0.15) + 5).toFixed(2)} € zzgl. 7% MwSt.</b>
+                    {#if paperSize === 'A4'}
+                    <p>Die Kosten der Partitur betragen {((scorePagesAdjustedDrahtkammer / 4 * (paperCost + printCost + foldCost)) + wireCost).toFixed(2)} € zzgl. 7% MwSt. = <b>{(((scorePagesAdjustedDrahtkammer / 4 * (paperCost + printCost + foldCost)) + wireCost) * mwst).toFixed(2)} €</b>.</p>
+                    {/if}
+                    {#if paperSize === 'C4'}
+                    <p>Die Kosten der Partitur betragen {(((scorePagesAdjustedDrahtkammer / 4 * (paperCost + printCost + foldCost)) + wireCost) * c4ToA4).toFixed(2)} € zzgl. 7% MwSt. = <b>{((((scorePagesAdjustedDrahtkammer / 4 * (paperCost + printCost + foldCost)) + wireCost) * c4ToA4) * mwst).toFixed(2)} €</b>.</p>
+                    {/if}
+                    <p>zzgl. ggfs. Versand Deutschland 7.00 Euro</p>
                     <p>Die Daten füge ich der e-Mail als Anhang hinzu.</p>
                 </div>
                 <button onclick={() => copyToClipboard()}>Die Zusammenfassung in die Zwischenablage kopieren</button>
             {:else}
-                <p>Bitte wählen Sie eine Seitenzahl von maximal 160.</p>
+                <p>Bitte wählen Sie eine Seitenzahl von maximal 200.</p>
             {/if}
         {/if}
     </div>
@@ -175,7 +215,7 @@
 
     .buttonBeside {
         display: flex;
-        justify-content: flex-start;
+        justify-content: space-between;
         align-items: center;
         margin-top: 1rem;
     }
@@ -236,11 +276,22 @@
     }
     label {
     display: block;
-    background-color: #fce5e5;
-    margin: 0.8em 0;
+    background-color: #d6ebe7;
+    margin: 0.3em 0.0em;
     padding: 1em;
     border-radius: 8px;
     font-size: 1rem;
     color: #555;
+}
+
+.inputPaperSize {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+    padding: 0.5em;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1rem;
+    gap: 0.5em;
 }
 </style>

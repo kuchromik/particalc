@@ -1,144 +1,226 @@
 <script>
 
-let maxPages = $state(0);
-let countOfmaxPages = $state(0);
-let maxPagesIn = $state(false);
-let maxPagesFalse = $state(false);
-let pagesArray = $state([]);
-let arraySum = $state(0);
+let voicesArray = $state([]);
+let voiceSum = $state(0);
+let paperSize = $state('A4');
+let paperSizeChoosen = $state(false);
+
+let arraySum = $derived(voicesArray.reduce((sum, voice) => sum + voice.voiceSum, 0));
+
+
+let paperCost = 0.1;
+let printCost = 0.1;
+let foldCost = 0.1;
+let stitchCost = 1;
+let c4ToA4 = 1.1;
+let mwst = 1.07;
+
 
 function copyToClipboard() {
-        const summaryBox = document.querySelector('.summaryBox');
-        const textToCopy = summaryBox.innerText;
-        navigator.clipboard.writeText(textToCopy).then(() => {
-            alert('Text wurde in die Zwischenablage kopiert!');
-        }).catch(err => {
-            console.error('Fehler beim Kopieren in die Zwischenablage:', err);
-        });
+    const summaryBox = document.querySelector('.summaryBox');
+    const textToCopy = summaryBox.innerText;
+    const message = textToCopy.replace(/Entfernen/g, '');
+    if (!navigator.clipboard) {
+        alert('Ihr Browser unterstützt das Kopieren in die Zwischenablage nicht. Bitte markieren Sie den Text manuell und kopieren Sie ihn.');
+        return;
+    }
+    navigator.clipboard.writeText(message).then(() => {
+        alert('Text wurde in die Zwischenablage kopiert!');
+    }).catch(err => {
+        console.error('Fehler beim Kopieren in die Zwischenablage:', err);
+    });
     }
 
-function resetAll() {
-    maxPages = 0;
-    countOfmaxPages = 0;
-    maxPagesIn = false;
-    maxPagesFalse = false;
-    pagesArray = [];
-    arraySum = 0;
+
+   
+let stimmenName = $state('');
+let seitenZahl = $state(0);
+let menge = $state(0);
+
+function addVoiceToArray() {
+    if (stimmenName && seitenZahl > 0 && menge > 0) {
+        if (seitenZahl === 1 || seitenZahl === 2 || seitenZahl === 4 || seitenZahl % 4 === 0) {
+            if (seitenZahl === 1 || seitenZahl === 2) {
+                voiceSum = (paperCost + printCost) * menge;
+            } else if (seitenZahl === 4) {
+                voiceSum = (paperCost + printCost + foldCost) * menge;
+            } else {
+                voiceSum = ((paperCost + printCost + foldCost) * seitenZahl/4 + stitchCost) * menge;
+            }
+            if (paperSize === 'C4') {
+                voiceSum *= c4ToA4;
+            }
+            voicesArray = [
+                ...voicesArray,
+                { stimmenName, pagenumber: seitenZahl, count: menge, voiceSum: voiceSum }
+            ];
+            stimmenName = '';
+            seitenZahl = 0;
+            menge = 0;
+        } else {
+            alert('Die Seitenzahl muss 1, 2, 4 oder ein Vielfaches von 4 sein.');
+        }
+   
+    } else {
+        alert('Bitte alle Felder korrekt ausfüllen.');
     }
+}
 </script>
 
 <h2>Orchesterstimmen</h2>
-<p>Der Druck erfolgt in s/w auf beschreibbarem Offsetpapier weiß 120 g/m² und die Bindung ab 8 Seiten als 2-Klammer-Rückstichheftung.</p>
-<p>Bitte beachten Sie, dass bei Rückstichheftungen die Seitenzahl ohne Rest durch vier teilbar sein muss, also 8, 12, 16, 20 ...</p>
-<p>Umfänge von drei oder vier Seiten werden als Faltblatt geliefert und ein- oder zwei Seiten als Einzelblatt.</p>
-{#if !maxPagesIn}
-<label>
-    Bitte geben Sie hier die Seitenzahl der Orchesterstimmen mit den meisten Seiten ein:
-    <input class="inputPages" type="number" bind:value={maxPages}/>
-    <button onclick={() => {
-        if (maxPages % 4 === 0) {
-            maxPagesIn = true;
-            maxPagesFalse = false;
-            for (let i = 0, pages = maxPages; pages >= 4; i++, pages -= 4) {
-                pagesArray.push({ index: i, pagenumber: pages, count: 0, countSet: false, pagesSum: 0 });
-            }
-            pagesArray.push({ index: pagesArray.length, pagenumber: 2, count: 0, countSet: false, pagesSum: 0 });
-            pagesArray.push({ index: (pagesArray.length)+1, pagenumber: 1, count: 0, countSet: false, pagesSum: 0 });
-        } else {
-            maxPagesFalse = true;
-        }
-    }}>OK</button>
-</label>
-<p class="error" style:display={maxPagesFalse ? 'block' : 'none'}>Die Seitenzahl muss ohne Rest durch 4 teilbar sein!</p>
-{/if}
+<p>Der Druck erfolgt in s/w auf beschreibbarem Offsetpapier weiß in 120 g/m² und die Bindung ab 8 Seiten als 2-Klammer-Rückstichheftung.</p>
+<p>Umfänge von vier Seiten werden als Faltblatt geliefert, ein- oder zwei Seiten als Einzelblatt.</p>
+<p>Bitte beachten Sie, dass bei Falzbogen die Seitenzahl ohne Rest durch vier teilbar sein muss, also 4, 8, 12, 16, 20. ggfs. fügen wir am Ende Leerseiten an.</p>
 
-
-{#if maxPagesIn}
-{#each pagesArray as page}
+<p>Bitte wählen Sie das gewünschte Endformat:</p>
+<div class="inputPaperSize">
     <label>
-        Bitte geben Sie hier die Anzahl der Orchesterstimmen mit {page.pagenumber} Seiten ein:
-        <input class="inputPages" type="number" bind:value={page.count}/>
-        <button onclick={() => {
-            page.countSet = true;
-            if (page.pagenumber >= 4) {
-                page.pagesSum = (((page.pagenumber / 4) * .30) + 1) * page.count + 1;
-            }
-            else if (page.pagenumber === 2) {
-                page.pagesSum = page.count * .20;
-            } else if (page.pagenumber === 1) {
-                page.pagesSum = page.count * .15;
-            }
-            arraySum += page.pagesSum;
-            }}>OK
-        </button>
+        <input type="radio" bind:group={paperSize} value="A4" checked/>
+        DIN A4 - 21 cm x 29,7 cm
     </label>
-{/each}
+    <label>
+        <input type="radio" bind:group={paperSize} value="C4" />
+        DIN C4 - 22,9 cm x 32,4 cm
+    </label>
+</div>
+<div class="inputPages">
+    <label>
+        Stimmenname:
+        <input type="text" bind:value={stimmenName} placeholder="z.B. Violine 1"/>
+    </label>
+    <label>
+        Seitenzahl:
+        <input type="number" bind:value={seitenZahl} placeholder="Seitenzahl" min="1"/>
+    </label>
+    <label>
+        Menge:
+        <input type="number" bind:value={menge} placeholder="Menge" min="1"/>
+    </label>
+    <button onclick={addVoiceToArray}>Hinzufügen</button>
+</div>
 
-    <div class="summaryBox">
-        <b>Zusammenfassung für einen Auftrag via e-Mail an kai.chromik@online.de</b>
-        {#each pagesArray as page}
-            {#if page.countSet}
-                <p>Seitenanzahl: {page.pagenumber} - Anzahl: {page.count} - Kosten: {page.pagesSum.toFixed(2)} € zzgl. 7% MwSt.</p>
-            {/if}
-        {/each}
-        <b>Die Gesamtkosten der Orchesterstimmen betragen {arraySum.toFixed(2)} € zzgl. 7% MwSt.</b>
-        <p>Die Daten füge ich der e-Mail als Anhang hinzu.</p>
-    </div>
-    <button onclick={() => resetAll()}>Eingaben löschen</button>
+
+
+
+
+
+<div class="summaryBox">
+    <b>Zusammenfassung für einen Auftrag via e-Mail an kai.chromik@online.de</b>
+    {#if paperSizeChoosen}
+        <p>Das gewählte Papierformat ist <b>DIN {paperSize}</b>.</p>
+    {/if}
+  
+    <p>Das gewählte Papierformat ist <b>DIN {paperSize}</b>. Ihre Dateien werden ggfs. skaliert.</p>
+    {#each voicesArray as page, index}
+        <div class="summaryItem">
+            <p><strong>{index + 1}. {page.stimmenName}</strong> - Seitenanzahl: {page.pagenumber}, Menge: {page.count}, Kosten für A4 bzw. C4: {page.voiceSum.toFixed(2)} bzw. {(page.voiceSum*c4ToA4).toFixed(2)} €</p>
+            <button onclick={() => {
+                voicesArray = voicesArray.filter((_, i) => i !== index);
+                }}>
+                Entfernen
+            </button>
+        </div>
+    {/each}
+    
+    {#if paperSize === 'A4'}
+        <p>Die Gesamtkosten der Orchesterstimmen im Format <b>DIN A4</b> betragen {arraySum.toFixed(2)} zzgl. 7% MwSt. = <b>{(arraySum*mwst).toFixed(2)} €</b>.</p>
+    {/if}
+    {#if paperSize === 'C4'}
+        <p>Die Gesamtkosten der Orchesterstimmen im Format <b>DIN C4</b> betragen {(arraySum*c4ToA4).toFixed(2)} € zzgl. 7% MwSt. = <b>{(arraySum*c4ToA4*mwst).toFixed(2)} €</b>.</p>
+    {/if}
+    <p>zzgl. ggfs. Versand Deutschland 7.00 Euro</p>
+    <p>Die Daten füge ich der e-Mail als Anhang hinzu.</p>
+</div>
+
+{#if paperSize && voicesArray.length > 0}
     <button onclick={() => copyToClipboard()}>Die Zusammenfassung in die Zwischenablage kopieren</button>
 {/if}
 
 
 
 <style>
-    .inputPages {
-        width: 3em;
-        padding: 0.5em;
-        margin: .3em 0;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        font-size: 1rem;
-    }
-    .error {
-        color: red;
-        font-size: 0.9rem;
-    }
-   
 
-    input[type="number"],
-    input[type="checkbox"] {
-        margin-left: 0.5rem;
-    }
-
-    button {
-        background-color: #3498db;
-        color: white;
-        border: none;
-        padding: 0.5em 1em;
-        margin: .3em 0em;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 1rem;
-        transition: background-color 0.3s ease;
-    }
-
-    button:hover {
-        background-color: #2980b9;
-    }
-    .summaryBox {
-        background-color: #ddd;
-        padding: 1em;
-        border-radius: 8px;
-        margin-top: 1rem;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-    label {
-    display: block;
-    background-color: #d6ebe7;
-    margin: .3em 0;
-    padding: .3em;
-    border-radius: 8px;
+button {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    padding: 0.3em 0.7em;
+    margin: .3em 0em;
+    border-radius: 4px;
+    cursor: pointer;
     font-size: 1rem;
-    color: #555;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background-color: #2980b9;
+}
+
+.summaryBox {
+    background-color: #ddd;
+    padding: 1em;
+    border-radius: 8px;
+    margin-top: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+label {
+display: block;
+background-color: #d6ebe7;
+margin: .3em 0;
+padding: .3em;
+border-radius: 8px;
+font-size: 1rem;
+color: #555;
+}
+
+.inputPages {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 0.5em;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1rem;
+    margin: 0.5em;
+    gap: 0.5em;
+}
+@media (max-width: 799px) {
+    .inputPages {
+        flex-direction: column;
+    }
+}
+
+.inputPages button {
+    background-color: #2ecc71;
+}
+.inputPages button:hover {
+    background-color: #27ae60;
+}
+.summaryItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 0.5em 0;
+    padding: 0.5em;
+    background-color: #f0f4f8;
+    border-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+.summaryItem button {
+    background-color: #e74c3c;
+}
+.summaryItem button:hover {
+    background-color: #c0392b;
+}
+.inputPaperSize {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+    padding: 0.5em;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1rem;
+    margin: 0.5em;
+    gap: 0.5em;
 }
 </style>
