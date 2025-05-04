@@ -7,7 +7,7 @@ let paperSizeChoosen = $state(false);
 
 let arraySum = $derived(voicesArray.reduce((sum, voice) => sum + voice.voiceSum, 0));
 
-
+let basicPrice = 1; // Grundpreis pro Stimme
 let paperCost = 0.1;
 let printCost = 0.1;
 let foldCost = 0.1;
@@ -50,6 +50,7 @@ function addVoiceToArray() {
             if (paperSize === 'C4') {
                 voiceSum *= c4ToA4;
             }
+            voiceSum += basicPrice;
             voicesArray = [
                 ...voicesArray,
                 { stimmenName, pagenumber: seitenZahl, count: menge, voiceSum: voiceSum }

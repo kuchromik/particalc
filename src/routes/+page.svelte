@@ -46,7 +46,7 @@
         flex-direction: column;
         padding: 2em;
         background-color: #f0f4f8;
-        max-width: 800px;
+        max-width: 1000px;
         margin: 2em auto;
         padding: 1.5em;
         background-color: #fff;
