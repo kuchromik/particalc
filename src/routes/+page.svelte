@@ -3,7 +3,6 @@
     import Orchesterstimmen from "$lib/Orchesterstimmen.svelte";
 
     let calctTypes = [
-        { name: "Auswahl", value: "Auswahl" },
         { name: "Partituren", value: "Partituren" },
         { name: "Orchesterstimmen", value: "Orchesterstimmen" }
     ];
@@ -13,11 +12,14 @@
 <main>
     <h1>Kalkulationstool</h1>
     <label for="calculationType">Was möchten Sie kalkulieren?</label>
-    <select class="inputCalculationsType" id="calculationType" bind:value={selectedType} on:change={() => selectedType = event.target.value}>
-        {#each calctTypes as type}
-            <option value={type.value}>{type.name}</option>
+    <div class="calc-type-options">
+        {#each calctTypes as type (type.value)}
+            <label>
+                <input type="radio" name="calculationType" bind:group={selectedType} value={type.value} />
+                {type.name}
+            </label>
         {/each}
-    </select>
+    </div>
     {#if selectedType === "Partituren"}
         <Partituren />
     {:else if selectedType === "Orchesterstimmen"}
@@ -84,6 +86,13 @@
         border-radius: 4px;
         font-size: 1rem;
         margin: 0.5em;
+    }
+
+    .calc-type-options {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-around;
+        margin-bottom: 1.5em;
     }
 
     /* Footer styles */
